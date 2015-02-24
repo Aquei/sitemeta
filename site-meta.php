@@ -6,6 +6,19 @@
  */
 
 
+/*
+ * FUCK
+ */
+$arrContextOptions=array(
+    "ssl"=>array(
+        "verify_peer"=>false,
+        "verify_peer_name"=>false,
+    ),
+);  
+$no_ssl = stream_context_create($arrContextOptions);
+
+
+
 
 
 include_once(dirname(__file__)."/Sitemeta.php");
@@ -24,12 +37,15 @@ if($u["scheme"] !== "http" && $u["scheme"] !== "https"){
 	bye();
 }
 
+$origin = "";
+if(isset($_SERVER["HTTP_ORIGIN"])){
+	$origin = $_SERVER["HTTP_ORIGIN"];
+}
 
 
 
 
-
-$html = file_get_contents($url);
+$html = file_get_contents($url, false, $no_ssl);
 //ã‚‚ã—utf8ã˜ã‚ƒãªã‹ã£ãŸã‚‰å¤‰æ›
 mb_language("Japanese");
 $encoding = mb_detect_encoding($html);
@@ -41,7 +57,7 @@ $site = new Sitemeta();
 $site->html = $html;
 //print_r ($site->getAttributes(["meta"]));
 
-$metas = $site->getAttributes(["meta"]);
+$metas = $site->getAttributes(["meta", "link"]);
 //print_r($metas);
 if(array_key_exists("meta", $metas) && count($metas["meta"])){
 	foreach($metas["meta"] as $mt){
@@ -60,6 +76,52 @@ if(array_key_exists("meta", $metas) && count($metas["meta"])){
 	}
 }
 
+if(array_key_exists("link", $metas) && count($metas["link"])){
+	foreach($metas["link"] as $lk){
+		//’T‚·
+
+		//feed
+		if(isset($lk["rel"]) && $lk["rel"] == "alternate" && isset($lk["href"]) && isset($lk["type"])){
+			if($lk["type"] == "application/rss+xml" || $lk["type"] == "application/atom+xml"){
+				$feed_item = array();
+				$feed_item["type"] = $lk["type"];
+				$feed_item["url"] = $lk["href"];
+
+				if(isset($lk["title"])){
+					$feed_item["title"] = $lk["title"];
+				}
+
+				$result["link"]["feed"][] = $feed_item;
+				continue;
+			}
+		}
+
+		//icon
+		if(isset($lk["href"]) && isset($lk["rel"]) && strpos(strtolower($lk["rel"]), "icon") !== false){
+			$icon_item = array();
+
+			$icon_item["url"] = $lk["href"];
+			if(isset($lk["sizes"])){
+				$icon_item["sizes"] = $lk["sizes"];
+			}
+
+			$result["link"]["icon"][] = $icon_item;
+			continue;
+		}
+
+		//oembed
+		if(isset($lk["rel"]) && $lk["rel"] == "alternate" && isset($lk["type"]) && $lk["type"] == "application/json+oembed" && isset($lk["href"]) && preg_match('/^https?:\/\/[a-z]/', $lk["href"])){
+			$oembed_item = array();
+			$oembed_item["url"] = $lk["href"];
+			$oembed_item["type"] = $lk["type"];
+			$oembed_item["data"] = file_get_contents($lk["href"], false, $no_ssl);
+
+			$result["link"]["oembed"][] = $oembed_item;
+			continue;
+		}
+	}
+}
+
 $title = $site->getTextNode("title");
 if($title){
 	$result["title"] = $title;
@@ -71,8 +133,10 @@ $headers[] = "X-XSS-Protection: 1; mode=block";
 $headers[] = "Content-Security-Policy: 'none'";
 $headers[] = "Access-Control-Allow-Origin: *";
 $headers[] = "Timing-Allow-Origin: *";
-$headers[] = "Cache-Control: public, max-age=31536000";
+$headers[] = "Cache-Control: public, max-age=".(60*60*24*30); //30“úƒLƒƒƒbƒVƒ…
 $headers[] = "Content-Type: application/json";
+$headers[] = "Vary: Origin";
+
 foreach($headers as $header){
 	header($header);
 }
@@ -90,6 +154,7 @@ if($json){
 //echo $site->getTextNode("title");
 
 function bye($message = null){
+	header("x-bye: bye");
 	header("HTTP/1.1 500 Internal Server Error");
 	die("bye bye!".$message);
 }
