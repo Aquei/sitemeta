@@ -114,7 +114,7 @@ if(array_key_exists("link", $metas) && count($metas["link"])){
 			$oembed_item = array();
 			$oembed_item["url"] = $lk["href"];
 			$oembed_item["type"] = $lk["type"];
-			$oembed_item["data"] = file_get_contents($lk["href"], false, $no_ssl);
+			$oembed_item["data"] = json_decode(file_get_contents($lk["href"], false, $no_ssl), true);
 
 			$result["link"]["oembed"][] = $oembed_item;
 			continue;
@@ -135,7 +135,7 @@ $headers[] = "Access-Control-Allow-Origin: *";
 $headers[] = "Timing-Allow-Origin: *";
 $headers[] = "Cache-Control: public, max-age=".(60*60*24*30); //30“úƒLƒƒƒbƒVƒ…
 $headers[] = "Content-Type: application/json";
-$headers[] = "Vary: Origin";
+$headers[] = "Vary: Accept-Encoding, Origin";
 
 foreach($headers as $header){
 	header($header);
