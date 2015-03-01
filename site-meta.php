@@ -40,6 +40,10 @@ if($u["scheme"] !== "http" && $u["scheme"] !== "https"){
 $origin = "";
 if(isset($_SERVER["HTTP_ORIGIN"])){
 	$origin = $_SERVER["HTTP_ORIGIN"];
+	$parsedUrl = parse_url($origin);
+	if(!preg_match('/\.?srytk\.com$/', $parsedUrl["host"]) || $parsedUrl["host"] != "localhost"){
+		bye2();
+	}
 }
 
 
@@ -157,4 +161,9 @@ function bye($message = null){
 	header("x-bye: bye");
 	header("HTTP/1.1 500 Internal Server Error");
 	die("bye bye!".$message);
+}
+
+function bye2($message = null){
+	header("HTTP/1.1 403 Forbidden");
+	die("origin error :".$message);
 }
