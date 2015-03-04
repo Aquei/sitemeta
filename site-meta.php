@@ -41,7 +41,7 @@ $origin = "";
 if(isset($_SERVER["HTTP_ORIGIN"])){
 	$origin = $_SERVER["HTTP_ORIGIN"];
 	$parsedUrl = parse_url($origin);
-	if(!preg_match('/\.?srytk\.com$/', $parsedUrl["host"]) || $parsedUrl["host"] != "localhost"){
+	if(!preg_match('/\.?srytk\.com$/', $parsedUrl["host"]) && $parsedUrl["host"] != "localhost"){
 		bye2();
 	}
 }
